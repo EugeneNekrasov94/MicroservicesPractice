@@ -3,16 +3,26 @@ spring:
     database: POSTGRESQL
     properties.hibernate.temp.use_jdbc_metadata_defaults: false
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
   datasource:
     platform: postgres
     url: jdbc:postgresql://localhost:5432/account_service_database
     username: postgres
-    password: root
+    password: postgres
     driver-class-name: org.postgresql.Driver
 
 server:
   servlet:
     context-path: /accounts
   port: 8081
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+    registerWithEureka: true
+    fetchRegistry: true
+  instance:
+    preferIpAddress: true
+    lease-renewal-interval-in-seconds: 30
