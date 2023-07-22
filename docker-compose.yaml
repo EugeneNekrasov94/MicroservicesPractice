@@ -1,0 +1,83 @@
+version: '3.5'
+
+services:
+  config-service:
+    container_name: config-service
+    build: config-service
+    ports:
+      - "8001:8001"
+    restart: "no"
+
+  registry-service:
+    container_name: registry-service
+    build: registry-service
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-service
+    restart: "no" #/раньше было always
+
+
+  gateway-service:
+    container_name: gateway-service
+    build: gateway-service
+    ports:
+      - "8989:8989"
+    depends_on:
+      - config-service
+      - registry-service
+    restart: "no" #/раньше было always
+
+  account-service:
+    container_name: account-service
+    build: account-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - config-service
+      - registry-service
+    restart: "no" #/раньше было on-failure
+
+  bill-service:
+    container_name: bill-service
+    build: bill-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - config-service
+      - registry-service
+    restart: "no" #/раньше было always
+
+  deposit-service:
+    container_name: deposit-service
+    build: deposit-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - config-service
+      - registry-service
+    restart:  "no"
+
+  notification-service:
+    container_name: notification-service
+    build: notification-service
+    ports:
+      - "9999:9999"
+    depends_on:
+      - config-service
+      - registry-service
+    restart:  "no"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    hostname: rabbitmq
+    labels:
+      NAME: 'rabbitmq'
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    depends_on:
+      - config-service
+      - registry-service
+      - account-service
+    restart:  "no"

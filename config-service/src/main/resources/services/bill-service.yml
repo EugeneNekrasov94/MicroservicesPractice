@@ -7,7 +7,7 @@ spring:
     properties:
   datasource:
     platform: postgres
-    url: jdbc:postgresql://localhost:5432/bill_service_database
+    url: jdbc:postgresql://192.168.0.9:5432/bill_service_database
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -20,7 +20,7 @@ server:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://registry-service:8761/eureka
     registerWithEureka: true
     fetchRegistry: true
   instance:
