@@ -2,9 +2,10 @@ package com.example.account.controller;
 
 import com.example.account.dto.AccountRequestDTO;
 import com.example.account.dto.AccountResponseDTO;
-import com.example.account.entity.Account;
 import com.example.account.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,10 @@ public class AccountController {
     @GetMapping("/{accountId}")
     public AccountResponseDTO getAccount(@PathVariable Long accountId) {
         return new AccountResponseDTO(accountService.getAccountById(accountId));
+    }
+    @GetMapping("/hello")
+    public ResponseEntity<String> hello(@RequestParam String text) {
+        return new ResponseEntity<>(text, HttpStatus.OK);
     }
 
     @PostMapping("/")

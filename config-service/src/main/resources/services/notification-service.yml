@@ -2,14 +2,42 @@ server:
   port: 9999
 
 spring:
-  rabbitmq:
-    port: 5672
-    host:  rabbitmq
-    username: guest
-    password: guest
+  #rabbitmq:
+    #port: 5672
+    #host:  localhost
+    #username: guest
+    #password: guest
+    #listener:
+      #direct:
+        #default-requeue-rejected: true
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: notification-service
+  kafka:
+    bootstrap-servers: host.docker.internal:29092,host.docker.internal:29093
     listener:
-      direct:
-        default-requeue-rejected: true
+      ack-mode: record
+    producer:
+      client-id: deposit-service
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Очередь для исключений
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+    consumer:
+      group-id: notification-service
+      autoOffsetReset: earliest
+      # Сериализаторы для всех типов
+      keyDeserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      valueDeserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+    properties:
+      # Тип, для которого определяем конкретные сериализаторы
+      spring.json.trusted.packages: com.example.notification.dto,com.example.deposit.dto
+      spring.json.value.default.type: com.example.notification.dto.DepositResponseDTO
+      spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+      spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+      spring.json.type.mapping: depositDTO:com.example.notification.dto.DepositResponseDTO
+
 
 eureka:
   client:
@@ -20,3 +48,7 @@ eureka:
   instance:
     preferIpAddress: true
     lease-renewal-interval-in-seconds: 30
+
+kafka:
+  topics:
+    test-topic: topic1

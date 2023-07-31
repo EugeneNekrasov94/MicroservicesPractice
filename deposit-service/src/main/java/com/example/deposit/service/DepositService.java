@@ -5,32 +5,31 @@ import com.example.deposit.entity.Deposit;
 import com.example.deposit.exception.DepositServiceException;
 import com.example.deposit.repository.DepositRepository;
 import com.example.deposit.rest.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.tools.javac.util.List;
-import org.bouncycastle.jcajce.provider.symmetric.AES;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class DepositService {
-    private static final String TOPIC_EXCHANGE_DEPOSIT = "js.deposit.notify.exchange";
-    private static final String ROUTING_KEY_DEPOSIT = "js.key.deposit";
+    @Value("${kafka.topics.test-topic}")
+    private String kafkaTopic;
+    private final KafkaTemplate<Object, Object> kafkaTemplate;
     private final DepositRepository depositRepository;
     private final AccountServiceClient accountServiceClient;
     private final BillServiceClient billServiceClient;
-    private final RabbitTemplate rabbitTemplate;
 
     @Autowired
-    public DepositService(DepositRepository depositRepository, AccountServiceClient accountServiceClient, BillServiceClient billServiceClient, RabbitTemplate rabbitTemplate) {
+    public DepositService(DepositRepository depositRepository, AccountServiceClient accountServiceClient, BillServiceClient billServiceClient, KafkaTemplate<Object, Object> kafkaTemplate) {
         this.depositRepository = depositRepository;
         this.accountServiceClient = accountServiceClient;
         this.billServiceClient = billServiceClient;
-        this.rabbitTemplate = rabbitTemplate;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public DepositResponseDTO deposit(Long accountId, Long billId, BigDecimal amount) {
@@ -47,24 +46,17 @@ public class DepositService {
             return getDepositResponseDTO(amount, accountResponseDTO);
         }
         BillResponseDTO defaultBill = getDefaultBill(accountId);
-        BillRequestDTO billRequestDTO = getBillRequestDTO(amount,defaultBill);
-        billServiceClient.update(defaultBill.getBillId(),billRequestDTO);
+        BillRequestDTO billRequestDTO = getBillRequestDTO(amount, defaultBill);
+        billServiceClient.update(defaultBill.getBillId(), billRequestDTO);
         AccountResponseDTO accountById = accountServiceClient.getAccountById(accountId);
-        depositRepository.save(new Deposit(amount,defaultBill.getBillId(), OffsetDateTime.now(), accountById.getEmail()));
-        return getDepositResponseDTO(amount,accountById);
+        depositRepository.save(new Deposit(amount, defaultBill.getBillId(), OffsetDateTime.now(), accountById.getEmail()));
+        return getDepositResponseDTO(amount, accountById);
 
     }
 
     private DepositResponseDTO getDepositResponseDTO(BigDecimal amount, AccountResponseDTO accountResponseDTO) {
         DepositResponseDTO responseDTO = new DepositResponseDTO(amount, accountResponseDTO.getEmail());
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            System.out.println(responseDTO);
-            rabbitTemplate.convertAndSend(TOPIC_EXCHANGE_DEPOSIT, ROUTING_KEY_DEPOSIT, objectMapper.writeValueAsString(responseDTO));
-        } catch (JsonProcessingException e) {
-            throw new DepositServiceException("Can't send message from RabbitMQ");
-        }
+        kafkaTemplate.send(kafkaTopic, responseDTO);
         return responseDTO;
     }
 
